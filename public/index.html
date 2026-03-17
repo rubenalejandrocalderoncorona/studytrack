@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="grain"></div>
+
+  <!-- Mobile Header -->
+  <header class="mobile-header">
+    <span class="logo-text">StudyTrack</span>
+    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo-row">
+          <span class="logo-text">StudyTrack</span>
+          <span class="version-badge" id="versionBadge">beta</span>
+        </div>
+      </div>
+      <nav class="objectives-nav" id="objectivesNav"></nav>
+      <div class="sidebar-footer">
+        <button class="btn-new-objective" id="newObjectiveBtn">+ New Objective</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <div class="main-inner">
+        <div id="mainContent"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ─── New Objective Modal ─────────────────────────────────────────── -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">New Objective</span>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Tabs -->
+        <div class="modal-tabs">
+          <button class="modal-tab active" data-tab="manual">Manual</button>
+          <button class="modal-tab" data-tab="json">Import JSON</button>
+        </div>
+
+        <!-- Manual Tab -->
+        <div class="modal-tab-panel active" id="tab-manual">
+          <form id="newObjectiveForm">
+            <div class="form-group">
+              <label class="form-label" for="objTitle">Title</label>
+              <input class="form-input" type="text" id="objTitle" name="title" placeholder="e.g. AWS Solutions Architect" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="objExamDate">Exam Date</label>
+              <input class="form-input" type="date" id="objExamDate" name="examDate" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Accent Color</label>
+              <div class="color-row">
+                <div class="color-input-wrap">
+                  <div class="color-swatch" id="colorSwatch" style="background:#378ADD"></div>
+                  <input type="color" name="accentColor" id="colorPicker" value="#378ADD" />
+                </div>
+                <span class="color-hex" id="colorHex">#378ADD</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="objDesc">Description</label>
+              <textarea class="form-textarea" id="objDesc" name="description" placeholder="What are you studying for?"></textarea>
+            </div>
+            <div class="modal-footer" style="padding:0;border:none;margin-top:8px;">
+              <button type="button" class="btn btn-secondary" id="modalCancel">Cancel</button>
+              <button type="submit" class="btn btn-primary">Create Objective</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- JSON Import Tab -->
+        <div class="modal-tab-panel" id="tab-json">
+          <div class="form-group">
+            <label class="form-label">Paste Objective JSON</label>
+            <textarea class="json-editor-textarea" id="importJsonTextarea" style="min-height:280px"
+              placeholder='{"title":"My Cert","examDate":"2026-06-01","accentColor":"#378ADD","description":"...","phases":[]}'></textarea>
+            <div class="json-error" id="importJsonError"></div>
+          </div>
+          <div class="modal-footer" style="padding:0;border:none;margin-top:8px;">
+            <button type="button" class="btn btn-secondary" id="importJsonCancel">Cancel</button>
+            <button type="button" class="btn btn-primary" id="importJsonBtn">Import</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── JSON Editor Modal ───────────────────────────────────────────── -->
+  <div class="modal-overlay json-modal" id="jsonEditorOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Edit Objective JSON</span>
+        <button class="modal-close" id="jsonEditorClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <textarea class="json-editor-textarea" id="jsonEditorTextarea"></textarea>
+        <div class="json-error" id="jsonEditorError"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="jsonEditorCancel">Cancel</button>
+        <button class="btn btn-primary" id="jsonEditorSave">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

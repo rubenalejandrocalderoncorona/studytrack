@@ -1,0 +1,8 @@
+{
+  "version": "beta",
+  "build": "0.1.0-beta",
+  "updated": "2026-03-16",
+  "changelog": [
+    { "version": "0.1.0-beta", "date": "2026-03-16", "notes": "Initial beta release. GCP ML Engineer study plan, inline editing, JSON editor, notes, custom task types." }
+  ]
+}

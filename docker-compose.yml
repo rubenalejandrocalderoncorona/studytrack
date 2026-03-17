@@ -1,0 +1,9 @@
+services:
+  studytrack:
+    build: .
+    container_name: studytrack
+    restart: always
+    ports:
+      - "3333:3333"
+    volumes:
+      - ./data:/app/data
