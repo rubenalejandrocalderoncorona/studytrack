@@ -3,6 +3,8 @@
 # ghswitch — toggle between GitHub accounts
 # Install: sudo cp ghswitch.sh /usr/local/bin/ghswitch && sudo chmod +x /usr/local/bin/ghswitch
 # Usage:   ghswitch [work|personal|status]
+#
+# First-time setup: run finish-setup.sh to store credentials locally.
 # ─────────────────────────────────────────────────────────────────────────────
 
 WORK_USERNAME="I754080"
@@ -10,7 +12,14 @@ WORK_EMAIL="ruben.calderon.corona@sap.com"
 
 PERSONAL_USERNAME="rubenalejandrocalderoncorona"
 PERSONAL_EMAIL="rubenalejandrocalderoncorona@gmail.com"
-PERSONAL_PAT="YOUR_PERSONAL_PAT_HERE"
+
+# ── Load personal PAT from local credentials file (never committed) ──────────
+CREDS_FILE="$HOME/.config/ghswitch/credentials"
+PERSONAL_PAT=""
+if [[ -f "$CREDS_FILE" ]]; then
+  # shellcheck source=/dev/null
+  source "$CREDS_FILE"
+fi
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -29,6 +38,12 @@ switch_to_work() {
 }
 
 switch_to_personal() {
+  if [[ -z "$PERSONAL_PAT" ]]; then
+    echo -e "${YELLOW}⚠ No PAT found. Run finish-setup.sh first, or create:${RESET}"
+    echo -e "  ${CYAN}$CREDS_FILE${RESET}"
+    echo -e "  with content: PERSONAL_PAT=\"your-pat-here\""
+    exit 1
+  fi
   git config --global user.name  "$PERSONAL_USERNAME"
   git config --global user.email "$PERSONAL_EMAIL"
   # Store personal PAT in macOS Keychain
@@ -53,6 +68,11 @@ show_status() {
     echo -e "  mode : ${GREEN}personal${RESET}"
   else
     echo -e "  mode : (unknown)"
+  fi
+  if [[ -f "$CREDS_FILE" ]]; then
+    echo -e "  creds: ${GREEN}loaded from $CREDS_FILE${RESET}"
+  else
+    echo -e "  creds: ${YELLOW}not configured (run finish-setup.sh)${RESET}"
   fi
 }
 
