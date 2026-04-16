@@ -6,6 +6,8 @@ COPY package*.json ./
 RUN npm install --production
 
 COPY server.js ./
+COPY routes ./routes
+COPY services ./services
 COPY public ./public
 
 EXPOSE 3333

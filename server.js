@@ -9,6 +9,13 @@ const DATA_FILE = path.join(__dirname, 'data', 'progress.json');
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ── New AI/RAG/Exam/Sandbox routes ────────────────────────────────────────────
+const examsRouter = require('./routes/exams');
+const syncRouter  = require('./routes/sync');
+app.use('/api/exams',   examsRouter);
+app.use('/api',         syncRouter);
+app.use('/api/sandbox', require('./routes/sandbox'));
+
 // Default seed data
 const DEFAULT_DATA = {
   objectives: [
@@ -436,9 +443,13 @@ app.post('/api/progress', (req, res) => {
 
 // POST add a new objective
 app.post('/api/objectives', (req, res) => {
-  const { title, examDate, accentColor, description } = req.body;
+  const { title, examDate, accentColor, description, studyGoal, type, codingLanguage } = req.body;
   if (!title || !examDate) {
     return res.status(400).json({ error: 'title and examDate required' });
+  }
+  const VALID_TYPES = ['theoretical', 'practical', 'coding'];
+  if (type && !VALID_TYPES.includes(type)) {
+    return res.status(400).json({ error: 'type must be theoretical, practical, or coding' });
   }
   const data = loadProgress();
   const id = 'obj-' + Date.now();
@@ -448,6 +459,9 @@ app.post('/api/objectives', (req, res) => {
     examDate,
     accentColor: accentColor || '#f0ede6',
     description: description || '',
+    studyGoal: studyGoal || '',
+    type: type || 'theoretical',
+    codingLanguage: codingLanguage || 'python',
     phases: []
   });
   saveProgress(data);
@@ -469,11 +483,18 @@ app.put('/api/objectives/:id', (req, res) => {
   if (!updated || !updated.title || !updated.examDate) {
     return res.status(400).json({ error: 'Invalid objective data' });
   }
+  const VALID_TYPES = ['theoretical', 'practical', 'coding'];
+  if (updated.type && !VALID_TYPES.includes(updated.type)) {
+    return res.status(400).json({ error: 'type must be theoretical, practical, or coding' });
+  }
   const data = loadProgress();
   const idx = data.objectives.findIndex(o => o.id === id);
   if (idx === -1) return res.status(404).json({ error: 'Objective not found' });
-  // Preserve the id
+  // Preserve the id; default type if missing
   updated.id = id;
+  if (!updated.type) updated.type = 'theoretical';
+  if (updated.studyGoal === undefined) updated.studyGoal = '';
+  if (updated.codingLanguage === undefined) updated.codingLanguage = 'python';
   data.objectives[idx] = updated;
   saveProgress(data);
   res.json({ ok: true });

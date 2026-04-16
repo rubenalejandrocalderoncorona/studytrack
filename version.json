@@ -1,8 +1,9 @@
 {
   "version": "beta",
-  "build": "0.1.0-beta",
-  "updated": "2026-03-16",
+  "build": "0.2.0-beta",
+  "updated": "2026-04-15",
   "changelog": [
+    { "version": "0.2.0-beta", "date": "2026-04-15", "notes": "AI exam generator, embedded code lab with Piston sandbox, per-objective coding environment, GitHub-style activity heatmap, ChromaDB RAG integration, Docker stack with Makefile." },
     { "version": "0.1.0-beta", "date": "2026-03-16", "notes": "Initial beta release. GCP ML Engineer study plan, inline editing, JSON editor, notes, custom task types." }
   ]
 }

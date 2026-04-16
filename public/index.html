@@ -38,7 +38,18 @@
     <!-- Main -->
     <main class="main">
       <div class="main-inner">
-        <div id="mainContent"></div>
+        <!-- Objective Tabs -->
+        <div class="obj-tabs" id="objTabs" style="display:none">
+          <button class="obj-tab active" data-tab="plan">Plan</button>
+          <button class="obj-tab" data-tab="exam">AI Exam</button>
+          <button class="obj-tab" data-tab="code">Code Lab</button>
+          <button class="obj-tab" data-tab="heatmap">Activity</button>
+        </div>
+        <!-- Tab panels -->
+        <div id="tabPlan"><div id="mainContent"></div></div>
+        <div id="tabExam" style="display:none"></div>
+        <div id="tabCode" style="display:none"></div>
+        <div id="tabHeatmap" style="display:none"></div>
       </div>
     </main>
   </div>
@@ -51,22 +62,42 @@
         <button class="modal-close" id="modalClose">&times;</button>
       </div>
       <div class="modal-body">
-        <!-- Tabs -->
         <div class="modal-tabs">
           <button class="modal-tab active" data-tab="manual">Manual</button>
           <button class="modal-tab" data-tab="json">Import JSON</button>
         </div>
-
         <!-- Manual Tab -->
         <div class="modal-tab-panel active" id="tab-manual">
           <form id="newObjectiveForm">
             <div class="form-group">
               <label class="form-label" for="objTitle">Title</label>
-              <input class="form-input" type="text" id="objTitle" name="title" placeholder="e.g. AWS Solutions Architect" required />
+              <input class="form-input" type="text" id="objTitle" name="title" placeholder="e.g. LeetCode Patterns" required />
             </div>
             <div class="form-group">
-              <label class="form-label" for="objExamDate">Exam Date</label>
+              <label class="form-label" for="objExamDate">Target Date</label>
               <input class="form-input" type="date" id="objExamDate" name="examDate" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="objType">Study Type</label>
+              <select class="form-input form-select" id="objType" name="type">
+                <option value="theoretical">Theoretical (Q&amp;A exams)</option>
+                <option value="coding">Coding (code challenges)</option>
+                <option value="practical">Practical (mixed)</option>
+              </select>
+            </div>
+            <div class="form-group" id="langGroup" style="display:none">
+              <label class="form-label" for="objLang">Coding Language / Environment</label>
+              <select class="form-input form-select" id="objLang" name="codingLanguage">
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="go">Go</option>
+                <option value="java">Java</option>
+                <option value="rust">Rust</option>
+                <option value="cpp">C++</option>
+                <option value="bash">Bash / Shell</option>
+              </select>
+              <div class="form-hint">Runtime languages come from Piston sandbox. You can also type a custom value.</div>
             </div>
             <div class="form-group">
               <label class="form-label">Accent Color</label>
@@ -88,13 +119,12 @@
             </div>
           </form>
         </div>
-
         <!-- JSON Import Tab -->
         <div class="modal-tab-panel" id="tab-json">
           <div class="form-group">
             <label class="form-label">Paste Objective JSON</label>
             <textarea class="json-editor-textarea" id="importJsonTextarea" style="min-height:280px"
-              placeholder='{"title":"My Cert","examDate":"2026-06-01","accentColor":"#378ADD","description":"...","phases":[]}'></textarea>
+              placeholder='{"title":"My Cert","examDate":"2026-06-01","accentColor":"#378ADD","type":"coding","codingLanguage":"python","description":"...","phases":[]}'></textarea>
             <div class="json-error" id="importJsonError"></div>
           </div>
           <div class="modal-footer" style="padding:0;border:none;margin-top:8px;">

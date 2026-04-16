@@ -7,3 +7,43 @@ services:
       - "3333:3333"
     volumes:
       - ./data:/app/data
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CHROMA_URL=http://chromadb:8000
+      - PISTON_URL=http://piston:2000
+    depends_on:
+      - chromadb
+      - piston
+    networks:
+      - lifeos-net
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: studytrack-chromadb
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/vector_data:/chroma/chroma
+    networks:
+      - lifeos-net
+
+  piston:
+    image: ghcr.io/engineer-man/piston
+    container_name: studytrack-piston
+    restart: always
+    platform: linux/amd64
+    ports:
+      - "2000:2000"
+    privileged: true
+    volumes:
+      - piston-data:/piston
+    networks:
+      - lifeos-net
+
+networks:
+  lifeos-net:
+    driver: bridge
+
+volumes:
+  piston-data:
