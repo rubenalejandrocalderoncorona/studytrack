@@ -44,7 +44,11 @@ let _client = null;
 function _getClient() {
   if (!_client) {
     if (!process.env.ANTHROPIC_API_KEY) return null;
-    _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const opts = { apiKey: process.env.ANTHROPIC_API_KEY };
+    if (process.env.ANTHROPIC_BASE_URL) {
+      opts.baseURL = process.env.ANTHROPIC_BASE_URL;
+    }
+    _client = new Anthropic(opts);
   }
   return _client;
 }
@@ -153,4 +157,6 @@ module.exports = {
   generateTheoreticalExam,
   generateCodingChallenge,
   gradeTheoreticalExam,
+  /** Call after changing ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL to force client re-init */
+  resetClient() { _client = null; },
 };

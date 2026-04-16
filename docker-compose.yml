@@ -9,6 +9,7 @@ services:
       - ./data:/app/data
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-}
       - CHROMA_URL=http://chromadb:8000
       - PISTON_URL=http://piston:2000
     depends_on:

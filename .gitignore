@@ -2,3 +2,4 @@ data/progress.json
 data/exams.json
 data/vector_data/
 node_modules/
+.env
