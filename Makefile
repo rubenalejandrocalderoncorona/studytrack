@@ -6,6 +6,12 @@ DC       := $(COMPOSE) -f docker-compose.yml
 # Export it so every docker/compose call in this Makefile finds the daemon.
 export DOCKER_HOST ?= unix:///Users/$(USER)/.docker/run/docker.sock
 
+# Prevent shell-level ANTHROPIC_* vars from overriding .env values.
+# This is important when Claude Code sets ANTHROPIC_BASE_URL in the shell
+# for its own proxy — studytrack reads its own values from .env instead.
+unexport ANTHROPIC_API_KEY
+unexport ANTHROPIC_BASE_URL
+
 .PHONY: up up-bg down restart logs logs-app logs-chroma logs-piston \
         status health install test-api pull help
 
