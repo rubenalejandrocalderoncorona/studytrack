@@ -10,17 +10,17 @@ Runs as a **Docker stack** (Web UI) or a **native macOS app** (Tauri).
 ## 1 — Set your API key (required for AI + Code features)
 
 ```bash
+# Permanent — add to ~/.zshrc then restart your terminal
+echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.zshrc
+source ~/.zshrc
+
+# Also create .env for the Docker / Web UI stack
 cp .env.example .env
-# open .env and set:  ANTHROPIC_API_KEY=sk-ant-...
+# open .env and replace the placeholder with the same key
 ```
 
-**Web UI:** done — Docker picks up `.env` automatically.
-
-**macOS app:** also export it in your shell before launching:
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...   # add this to ~/.zshrc to make it permanent
-make macos-open
-```
+**Web UI:** reads from `.env` — done after the two steps above.  
+**macOS app:** reads from your shell environment — done after `source ~/.zshrc`.
 
 ---
 
