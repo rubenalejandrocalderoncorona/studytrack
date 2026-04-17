@@ -80,7 +80,10 @@ macos-open:
 	open "$(APP_BUNDLE)"
 
 ## Run the macOS app in dev mode (server.js live, no sidecar compilation)
+## Kills any existing process on port 3333 first to avoid EADDRINUSE.
 macos-dev: install
+	@echo "→ Killing any process already on port 3333..."
+	@lsof -ti :3333 | xargs kill -9 2>/dev/null || true
 	@echo "→ Starting Node.js server for Tauri dev mode..."
 	@echo "   (in another terminal: npx tauri dev)"
 	node server.js

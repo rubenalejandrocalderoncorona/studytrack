@@ -66,9 +66,25 @@ make macos-open    # opens the updated bundle
 ```bash
 # Terminal 1
 make macos-dev          # starts node server.js on port 3333
+                        # (kills any existing process on 3333 first)
 
 # Terminal 2
 npx tauri dev           # opens Tauri window pointing at localhost:3333
+```
+
+### Troubleshooting: port 3333 already in use
+
+If you see `EADDRINUSE: address already in use :::3333`, something is already holding
+the port. `make macos-dev` will kill it automatically, but you can also do it manually:
+
+```bash
+# Find and kill whatever owns port 3333
+lsof -ti :3333 | xargs kill -9
+
+# Common causes:
+#  — a previous `node server.js` left running in another terminal
+#  — the macOS app sidecar from a prior run didn't exit cleanly
+#  — the Docker stack is up (make down stops it)
 ```
 
 ---
