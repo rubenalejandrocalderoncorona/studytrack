@@ -627,7 +627,38 @@ body {
 .btn-ghost { background: none; border-color: var(--border); color: var(--text-muted); }
 .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); }
 
-/* ─── Heatmap ────────────────────────────────────────────────────────── */
+/* ─── Service Health Bar ─────────────────────────────────────────────── */
+.service-bar {
+  display: flex; align-items: center; gap: 10px; padding: 6px 16px;
+  background: var(--bg-sidebar); border-bottom: 1px solid var(--border-light);
+  font-family: var(--font-mono); font-size: 10px; flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.svc-indicators { display: flex; align-items: center; gap: 6px; }
+.svc-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  transition: background 300ms ease;
+}
+.svc-ok  { background: #3cb464; box-shadow: 0 0 4px rgba(60,180,100,0.5); }
+.svc-off { background: var(--text-dim); }
+.svc-label { color: var(--text-muted); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; margin-right: 6px; }
+.svc-hint { color: var(--text-dim); font-size: 9px; flex: 1; }
+.svc-btn {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 3px 10px; cursor: pointer; border-radius: var(--radius-sm);
+  transition: background var(--transition), border-color var(--transition); border: 1px solid;
+}
+.svc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.svc-btn-start { background: rgba(60,180,100,0.12); border-color: #3cb464; color: #6dcc8a; }
+.svc-btn-start:hover:not(:disabled) { background: rgba(60,180,100,0.22); }
+.svc-btn-stop  { background: rgba(224,85,85,0.1); border-color: #e05555; color: #e07070; }
+.svc-btn-stop:hover:not(:disabled)  { background: rgba(224,85,85,0.18); }
+.svc-feature-hint {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);
+  padding: 6px 0; font-style: italic;
+}
+
+
 .heatmap-panel { padding-bottom: 60px; }
 .heatmap-loading { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); padding: 40px 0; text-align: center; }
 .heatmap-stats {

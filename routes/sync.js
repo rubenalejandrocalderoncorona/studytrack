@@ -20,7 +20,7 @@ const path    = require('path');
 const rag     = require('../services/rag.service');
 
 const router    = express.Router();
-const DATA_FILE = path.join(__dirname, '../data/progress.json');
+const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, '../data'), 'progress.json');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

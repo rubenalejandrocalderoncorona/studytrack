@@ -3,3 +3,7 @@ data/exams.json
 data/vector_data/
 node_modules/
 .env
+src-tauri/binaries/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/docker-compose.services.yml

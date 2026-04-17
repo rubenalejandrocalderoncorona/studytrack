@@ -22,7 +22,8 @@ const ai      = require('../services/ai.service');
 const rag     = require('../services/rag.service');
 
 const router     = express.Router();
-const EXAMS_FILE = path.join(__dirname, '../data/exams.json');
+const DATA_DIR   = process.env.DATA_DIR || path.join(__dirname, '../data');
+const EXAMS_FILE = path.join(DATA_DIR, 'exams.json');
 
 // ── Persistence helpers ───────────────────────────────────────────────────────
 

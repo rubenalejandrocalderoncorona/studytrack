@@ -4,7 +4,8 @@ const path = require('path');
 
 const app = express();
 const PORT = 3333;
-const DATA_FILE = path.join(__dirname, 'data', 'progress.json');
+const DATA_DIR  = process.env.DATA_DIR || path.join(__dirname, 'data');
+const DATA_FILE = path.join(DATA_DIR, 'progress.json');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -544,6 +545,48 @@ app.post('/api/custom-types', (req, res) => {
   saveProgress(data);
   res.json({ ok: true });
 });
+
+// GET client config — tells the frontend whether it's running under the macOS app
+app.get('/api/config', (req, res) => {
+  res.json({ managed: process.env.MANAGE_SERVICES === '1' });
+});
+
+// GET service health — used by frontend polling and Tauri shell
+app.get('/api/health', async (req, res) => {
+  const chromaUrl = (process.env.CHROMA_URL || 'http://localhost:8000') + '/api/v2/heartbeat';
+  const pistonUrl = (process.env.PISTON_URL || 'http://localhost:2000') + '/api/v2/runtimes';
+  const [chromaOk, pistonOk] = await Promise.all([
+    fetch(chromaUrl).then(r => r.ok).catch(() => false),
+    fetch(pistonUrl).then(r => r.ok).catch(() => false),
+  ]);
+  res.json({ ai: Boolean(process.env.ANTHROPIC_API_KEY), chroma: chromaOk, piston: pistonOk });
+});
+
+// Docker service management — only active when macOS app sets MANAGE_SERVICES=1
+if (process.env.MANAGE_SERVICES === '1') {
+  const { execFile } = require('child_process');
+  const SERVICES_FILE = process.env.SERVICES_COMPOSE_FILE || path.join(__dirname, 'docker-compose.services.yml');
+
+  app.post('/api/services/start', (req, res) => {
+    execFile('docker', ['compose', '-f', SERVICES_FILE, 'up', '-d'], { timeout: 120000 }, (err, stdout, stderr) => {
+      if (err) {
+        console.error('[services] start error:', stderr);
+        return res.status(500).json({ ok: false, error: stderr || err.message });
+      }
+      res.json({ ok: true });
+    });
+  });
+
+  app.post('/api/services/stop', (req, res) => {
+    execFile('docker', ['compose', '-f', SERVICES_FILE, 'down'], { timeout: 60000 }, (err, stdout, stderr) => {
+      if (err) {
+        console.error('[services] stop error:', stderr);
+        return res.status(500).json({ ok: false, error: stderr || err.message });
+      }
+      res.json({ ok: true });
+    });
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`StudyTrack running at http://localhost:${PORT}`);

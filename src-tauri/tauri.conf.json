@@ -1,0 +1,49 @@
+{
+  "identifier": "com.studytrack.app",
+  "productName": "StudyTrack",
+  "version": "0.3.0",
+  "build": {
+    "beforeDevCommand": "node server.js",
+    "devUrl": "http://localhost:3333",
+    "beforeBuildCommand": "bash scripts/build-sidecar.sh",
+    "frontendDist": "http://localhost:3333"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "StudyTrack",
+        "url": "http://localhost:3333",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 960,
+        "minHeight": 600,
+        "center": true,
+        "visible": false,
+        "decorations": true,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": ["binaries/studytrack-server"],
+    "resources": ["docker-compose.services.yml"],
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "entitlements": null,
+      "signingIdentity": null
+    }
+  }
+}

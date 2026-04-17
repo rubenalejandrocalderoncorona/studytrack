@@ -2,6 +2,7 @@
 /* ─── State ──────────────────────────────────────────────────────────── */
 let appData = null, activeObjectiveId = null, activeTab = 'plan';
 let pistonRuntimes = []; // loaded once on boot
+let serviceStatus = { ai: false, chroma: false, piston: false };
 const TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
 const TYPES = ['Coursera', 'Udemy', 'Lab', 'Review', 'Exam'];
 
@@ -34,7 +35,75 @@ document.addEventListener('DOMContentLoaded', async () => {
     const rr = await fetch('/api/sandbox/runtimes');
     if (rr.ok) pistonRuntimes = await rr.json();
   } catch (e) {}
+
+  // Fetch config to know if running under macOS app (MANAGE_SERVICES mode)
+  try {
+    const cr = await fetch('/api/config');
+    if (cr.ok) {
+      const cfg = await cr.json();
+      const bar = document.getElementById('serviceBar');
+      if (bar && cfg.managed) bar.dataset.managed = '1';
+    }
+  } catch (e) {}
+
+  // Service health polling
+  await pollHealth();
+  setInterval(pollHealth, 5000);
 });
+
+/* ─── Service Health ─────────────────────────────────────────────────── */
+async function pollHealth() {
+  try {
+    const r = await fetch('/api/health');
+    if (r.ok) {
+      const s = await r.json();
+      serviceStatus = s;
+      renderServiceBar();
+    }
+  } catch (e) {}
+}
+
+async function toggleServices(start) {
+  const btn = document.getElementById('svcToggleBtn');
+  if (btn) { btn.disabled = true; btn.textContent = start ? 'Starting…' : 'Stopping…'; }
+  try {
+    await fetch(start ? '/api/services/start' : '/api/services/stop', { method: 'POST' });
+    // Poll quickly until state changes
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      await pollHealth();
+      if (start && serviceStatus.chroma && serviceStatus.piston) break;
+      if (!start && !serviceStatus.chroma && !serviceStatus.piston) break;
+    }
+  } catch (e) {}
+  if (btn) { btn.disabled = false; }
+  renderServiceBar();
+}
+
+function renderServiceBar() {
+  const bar = document.getElementById('serviceBar');
+  if (!bar) return;
+  const { ai, chroma, piston } = serviceStatus;
+  const dot = ok => `<span class="svc-dot ${ok ? 'svc-ok' : 'svc-off'}"></span>`;
+  const manageAvailable = document.getElementById('serviceBar').dataset.managed === '1';
+  const allUp = chroma && piston;
+
+  let action = '';
+  if (manageAvailable) {
+    action = allUp
+      ? `<button class="svc-btn svc-btn-stop" id="svcToggleBtn" onclick="toggleServices(false)">Stop Services</button>`
+      : `<button class="svc-btn svc-btn-start" id="svcToggleBtn" onclick="toggleServices(true)">Launch AI Services</button>`;
+  }
+
+  bar.innerHTML = `
+    <div class="svc-indicators">
+      ${dot(ai)}<span class="svc-label">AI</span>
+      ${dot(chroma)}<span class="svc-label">Chroma</span>
+      ${dot(piston)}<span class="svc-label">Code</span>
+    </div>
+    ${!allUp && !manageAvailable ? '<span class="svc-hint">Start the Docker stack to enable AI &amp; Code features</span>' : ''}
+    ${action}`;
+}
 
 /* ─── Tab Navigation ─────────────────────────────────────────────────── */
 function showTab(tab) {
@@ -372,7 +441,8 @@ function renderExamTab() {
               <input class="form-input" id="examCount" type="number" min="1" max="20" value="5" />
             </div>
           </div>
-          <button class="btn btn-primary" id="examGenerateBtn">Generate Exam ↗</button>
+          <button class="btn btn-primary" id="examGenerateBtn" ${!serviceStatus.ai ? 'disabled' : ''}>Generate Exam ↗</button>
+          ${!serviceStatus.ai ? '<div class="svc-feature-hint">AI service unavailable — configure ANTHROPIC_API_KEY to use this feature</div>' : ''}
           <div class="exam-error" id="examError"></div>
         </div>
       </div>
@@ -551,7 +621,8 @@ function renderCodeTab() {
               <select class="form-input form-select" id="codeLang">${langOpts}</select>
             </div>
           </div>
-          <button class="btn btn-primary" id="codeGenerateBtn">Generate Challenge ↗</button>
+          <button class="btn btn-primary" id="codeGenerateBtn" ${!serviceStatus.ai ? 'disabled' : ''}>Generate Challenge ↗</button>
+          ${!serviceStatus.ai ? '<div class="svc-feature-hint">AI service unavailable — configure ANTHROPIC_API_KEY to use this feature</div>' : ''}
           <div class="exam-error" id="codeError"></div>
         </div>
       </div>
@@ -614,7 +685,7 @@ function renderCodingChallenge(record, selectedLang) {
           <span class="section-label">Your Solution (${lang})</span>
           <div class="editor-actions">
             <button class="btn btn-sm btn-ghost" id="resetCodeBtn">Reset</button>
-            <button class="btn btn-sm btn-primary" id="runCodeBtn">▶ Run</button>
+            <button class="btn btn-sm btn-primary" id="runCodeBtn" ${!serviceStatus.piston ? 'disabled' : ''}>▶ Run</button>
           </div>
         </div>
         <textarea class="code-editor" id="codeEditor" spellcheck="false">${x(starter)}</textarea>

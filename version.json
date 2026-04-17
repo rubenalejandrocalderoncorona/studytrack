@@ -1,8 +1,9 @@
 {
   "version": "beta",
-  "build": "0.2.0-beta",
-  "updated": "2026-04-15",
+  "build": "0.3.0-beta",
+  "updated": "2026-04-17",
   "changelog": [
+    { "version": "0.3.0-beta", "date": "2026-04-17", "notes": "Native macOS app via Tauri v2: bundled Node.js sidecar, optional Docker service management (Launch/Stop ChromaDB+Piston from the app), service health bar in UI, data stored in ~/Library/Application Support/studytrack/." },
     { "version": "0.2.0-beta", "date": "2026-04-15", "notes": "AI exam generator, embedded code lab with Piston sandbox, per-objective coding environment, GitHub-style activity heatmap, ChromaDB RAG integration, Docker stack with Makefile." },
     { "version": "0.1.0-beta", "date": "2026-03-16", "notes": "Initial beta release. GCP ML Engineer study plan, inline editing, JSON editor, notes, custom task types." }
   ]

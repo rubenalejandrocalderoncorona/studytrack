@@ -37,6 +37,9 @@
 
     <!-- Main -->
     <main class="main">
+      <!-- Service health bar — populated by renderServiceBar() in app.js.
+           data-managed="1" is injected by the Tauri shell when MANAGE_SERVICES=1 -->
+      <div class="service-bar" id="serviceBar" data-managed="0"></div>
       <div class="main-inner">
         <!-- Objective Tabs -->
         <div class="obj-tabs" id="objTabs" style="display:none">
