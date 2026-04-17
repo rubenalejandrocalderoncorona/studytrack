@@ -1,105 +1,76 @@
 # StudyTrack
 
 Personal study tracker with AI exam generation and code challenges.
-Runs as a **Docker stack** (Linux / Web) or a **native macOS app** (Tauri).
+Runs as a **Docker stack** (Web UI) or a **native macOS app** (Tauri).
+
+> For deeper technical detail — architecture, troubleshooting, internals — see [`docs/TECHNICAL.md`](docs/TECHNICAL.md).
+
+---
+
+## 1 — Set your API key (required for AI + Code features)
+
+```bash
+cp .env.example .env
+# open .env and set:  ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**Web UI:** done — Docker picks up `.env` automatically.
+
+**macOS app:** also export it in your shell before launching:
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...   # add this to ~/.zshrc to make it permanent
+make macos-open
+```
+
+---
+
+## 2 — Web UI (Docker)
+
+**Requires:** Docker Desktop running.
+
+```bash
+make up-bg      # build + start everything  →  http://localhost:3333
+make restart    # after editing any source file (faster than up-bg)
+make down       # stop everything
+make status     # check all services are green
+make logs       # stream logs
+```
+
+> AI and Code features also need ChromaDB + Piston — both start automatically with `make up-bg`.
+
+---
+
+## 3 — macOS App (Tauri)
+
+**Requires:** Docker Desktop running, Rust toolchain (`rustup`), Node.js 18+.
+
+```bash
+make macos-build   # compile .app + .dmg  (3–5 min first time)
+make macos-open    # open the app (builds first if missing)
+```
+
+Inside the app, click **"Launch AI Services"** to start ChromaDB + Piston.  
+Data is stored in `~/Library/Application Support/studytrack/`.
+
+**Dev mode** (no recompile — edit files and refresh):
+```bash
+# Terminal 1
+make macos-dev     # start Node server on port 3333
+
+# Terminal 2
+npx tauri dev      # open Tauri window
+```
 
 ---
 
 ## Debugging make targets
 
 ```bash
-make <target> --dry-run   # print commands without running
+make <target> --dry-run   # print commands without running them
 make <target> -n          # same thing, shorthand
+make status               # check which services are up
+make logs-app             # stream app logs only
 ```
-
-For verbose shell output, prefix any recipe manually:
-```bash
-make logs-app             # to see what docker compose command runs — use --dry-run first
-```
-
----
-
-## Web UI (Docker — Linux / macOS)
-
-**Prerequisites:** Docker Desktop running.
-
-```bash
-# First time or after code changes
-make up-bg        # builds images + starts everything in background
-                  # opens → http://localhost:3333
-
-# Day-to-day
-make restart      # restart app only after editing server.js / routes / public/
-make logs         # stream logs from all containers
-make logs-app     # stream app logs only
-make status       # check all three services are green
-make down         # stop everything
-```
-
-**After editing any file inside `public/` or `routes/`**, `make restart` is enough.  
-**After editing `server.js` or `package.json`**, run `make up-bg` to rebuild the image.
-
----
-
-## macOS App (Tauri)
-
-**Prerequisites:** Docker Desktop running, Rust toolchain (`rustup`), Node.js 18+.
-
-```bash
-# Build the .app + .dmg  (takes ~3–5 min first time)
-make macos-build
-
-# Open the app  (builds automatically if the bundle doesn't exist)
-make macos-open
-```
-
-The app stores data in `~/Library/Application Support/studytrack/`.  
-AI + Code features require clicking **"Launch AI Services"** in the app — it starts ChromaDB and Piston as Docker containers.
-
-**Rebuilding after code changes:**
-```bash
-make macos-build   # re-compiles sidecar + Rust shell
-make macos-open    # opens the updated bundle
-```
-
-**Dev mode** (faster iteration — no recompile):
-```bash
-# Terminal 1 — start the Node server first
-make macos-dev
-
-# Terminal 2 — then open Tauri (do NOT use npx tauri dev alone;
-#              tauri.conf.json has beforeDevCommand="" to avoid a
-#              second server trying to bind port 3333)
-npx tauri dev
-```
-
-### Troubleshooting: port 3333 already in use
-
-If you see `EADDRINUSE: address already in use :::3333`, something is already holding
-the port. `make macos-dev` will kill it automatically, but you can also do it manually:
-
-```bash
-# Find and kill whatever owns port 3333
-lsof -ti :3333 | xargs kill -9
-
-# Common causes:
-#  — a previous `node server.js` left running in another terminal
-#  — the macOS app sidecar from a prior run didn't exit cleanly
-#  — the Docker stack is up (make down stops it)
-```
-
----
-
-## AI Key Setup
-
-Copy `.env.example` to `.env` and fill in your key:
-
-```bash
-cp .env.example .env
-# edit .env — set ANTHROPIC_API_KEY and optionally ANTHROPIC_BASE_URL
-```
-
-The Docker stack picks this up automatically. The macOS app reads it from your shell environment — export it before launching.
 
 ---
 
@@ -107,33 +78,4 @@ The Docker stack picks this up automatically. The macOS app reads it from your s
 
 ```bash
 make test-api     # requires the stack to be running (make up-bg first)
-```
-
----
-
-## File structure
-
-```
-studytrack/
-├── server.js                    # Express API + static server
-├── routes/
-│   ├── exams.js                 # AI exam generation + grading
-│   ├── sandbox.js               # Code execution (Piston)
-│   └── sync.js                  # RAG document sync
-├── services/
-│   ├── ai.service.js            # Anthropic SDK wrapper
-│   ├── rag.service.js           # ChromaDB vector store
-│   └── sandbox.service.js       # Piston HTTP client
-├── public/
-│   ├── index.html
-│   ├── app.js                   # Vanilla JS SPA
-│   └── style.css
-├── src-tauri/                   # macOS Tauri v2 shell
-│   ├── src/main.rs              # Rust: sidecar spawn, tray, Docker mgmt
-│   └── tauri.conf.json
-├── docker-compose.yml           # Full stack (app + ChromaDB + Piston)
-├── docker-compose.services.yml  # ChromaDB + Piston only (used by macOS app)
-├── Makefile
-├── .env.example
-└── data/                        # git-ignored — progress.json, exams.json
 ```
