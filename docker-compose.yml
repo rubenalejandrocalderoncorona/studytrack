@@ -12,6 +12,8 @@ services:
       - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-}
       - CHROMA_URL=http://chromadb:8000
       - PISTON_URL=http://piston:2000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - chromadb
       - piston
