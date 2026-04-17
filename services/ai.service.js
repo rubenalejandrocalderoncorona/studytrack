@@ -34,7 +34,14 @@ Rules:
     "testCases": array of {"input": string, "expectedOutput": string, "hidden": boolean}
       — include at least 3 visible and 2 hidden test cases
     "language": preferred language ("python" or "javascript")
-- The challenge must be solvable within 30 minutes by a junior–mid developer.`;
+    "difficulty": number 1–5
+- Difficulty scale:
+    1 = Beginner: basic syntax, loops, simple data structures (solvable in ~5 min)
+    2 = Easy: array/string manipulation, basic algorithms (solvable in ~10 min)
+    3 = Medium: hash maps, two-pointer, BFS/DFS, standard LeetCode medium (solvable in ~20 min)
+    4 = Hard: DP, advanced graphs, complex data structures (solvable in ~35 min)
+    5 = Expert: system design elements, highly optimised solutions, competitive-level (solvable in ~60 min)
+- Match the challenge complexity to the requested difficulty level.`;
 
 // ── Client initialisation ─────────────────────────────────────────────────────
 
@@ -115,19 +122,22 @@ async function generateTheoreticalExam({ topic, count = 5, context = '' }) {
  * @param {object} params
  * @param {string} params.topic         - The coding topic (e.g. "binary search trees")
  * @param {string} [params.language]    - Preferred language hint ("python" | "javascript")
+ * @param {number} [params.difficulty]  - Difficulty 1–5 (1=Beginner, 5=Expert)
  * @param {string} [params.context]     - Optional RAG context
  * @returns {Promise<object>}           - Parsed coding challenge object
  */
-async function generateCodingChallenge({ topic, language = 'python', context = '' }) {
+async function generateCodingChallenge({ topic, language = 'python', difficulty = 3, context = '' }) {
   const client = _getClient();
   if (!client) throw new AiUnavailableError();
 
+  const level = Math.min(Math.max(1, Math.round(difficulty)), 5);
   const userMsg = [
     `Topic: ${topic}`,
     `Preferred language: ${language}`,
+    `Difficulty: ${level}/5`,
     context ? `\nRelevant context from study materials:\n${context}` : '',
     '\nGenerate one coding challenge. Return a single JSON object as specified.',
-  ].join('');
+  ].join('\n');
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',

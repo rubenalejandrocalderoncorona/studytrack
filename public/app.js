@@ -620,6 +620,16 @@ function renderCodeTab() {
               <label class="form-label">Language / Environment</label>
               <select class="form-input form-select" id="codeLang">${langOpts}</select>
             </div>
+            <div class="form-group" style="min-width:130px">
+              <label class="form-label">Difficulty</label>
+              <select class="form-input form-select" id="codeDifficulty">
+                <option value="1">1 — Beginner</option>
+                <option value="2">2 — Easy</option>
+                <option value="3" selected>3 — Medium</option>
+                <option value="4">4 — Hard</option>
+                <option value="5">5 — Expert</option>
+              </select>
+            </div>
           </div>
           <button class="btn btn-primary" id="codeGenerateBtn" ${!serviceStatus.ai ? 'disabled' : ''}>Generate Challenge ↗</button>
           ${!serviceStatus.ai ? '<div class="svc-feature-hint">AI service unavailable — configure ANTHROPIC_API_KEY to use this feature</div>' : ''}
@@ -635,6 +645,7 @@ function renderCodeTab() {
 async function runGenerateChallenge(obj) {
   const topic = document.getElementById('codeTopic').value.trim();
   const language = document.getElementById('codeLang').value;
+  const difficulty = parseInt(document.getElementById('codeDifficulty').value, 10);
   const errEl = document.getElementById('codeError');
   const btn = document.getElementById('codeGenerateBtn');
   if (!topic) { errEl.textContent = 'Topic is required.'; return; }
@@ -645,7 +656,7 @@ async function runGenerateChallenge(obj) {
     const res = await fetch('/api/exams/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ objectiveId: obj.id, topic, type: 'coding', language })
+      body: JSON.stringify({ objectiveId: obj.id, topic, type: 'coding', language, difficulty })
     });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.error || 'Generation failed.'; return; }
@@ -675,6 +686,7 @@ function renderCodingChallenge(record, selectedLang) {
       <div class="challenge-header">
         <div class="challenge-title">${x(ch.title || record.topic)}</div>
         <span class="lang-badge">${lang}</span>
+        ${(ch.difficulty || record.difficulty) ? `<span class="diff-badge diff-${ch.difficulty || record.difficulty}">Lvl ${ch.difficulty || record.difficulty}</span>` : ''}
       </div>
       <div class="challenge-description">${x(ch.description)}</div>
       ${examples ? `<div class="challenge-section"><div class="section-label">Examples</div>${examples}</div>` : ''}

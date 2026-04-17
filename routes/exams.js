@@ -62,7 +62,7 @@ router.post('/generate', async (req, res) => {
     return res.status(503).json({ error: 'AI service unavailable: ANTHROPIC_API_KEY is not configured.' });
   }
 
-  const { objectiveId, topic, type, count, language } = req.body;
+  const { objectiveId, topic, type, count, language, difficulty } = req.body;
 
   if (!objectiveId || typeof objectiveId !== 'string') {
     return res.status(400).json({ error: 'objectiveId is required' });
@@ -87,7 +87,7 @@ router.post('/generate', async (req, res) => {
     if (type === 'theoretical') {
       exam = await ai.generateTheoreticalExam({ topic, count: count ?? 5, context });
     } else {
-      exam = await ai.generateCodingChallenge({ topic, language: language ?? 'python', context });
+      exam = await ai.generateCodingChallenge({ topic, language: language ?? 'python', difficulty: difficulty ?? 3, context });
     }
 
     // Persist exam
@@ -98,6 +98,7 @@ router.post('/generate', async (req, res) => {
       objectiveId,
       topic,
       type,
+      difficulty:  type === 'coding' ? (difficulty ?? 3) : undefined,
       createdAt:   new Date().toISOString(),
       exam,
     };
