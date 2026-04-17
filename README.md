@@ -64,12 +64,13 @@ make macos-open    # opens the updated bundle
 
 **Dev mode** (faster iteration — no recompile):
 ```bash
-# Terminal 1
-make macos-dev          # starts node server.js on port 3333
-                        # (kills any existing process on 3333 first)
+# Terminal 1 — start the Node server first
+make macos-dev
 
-# Terminal 2
-npx tauri dev           # opens Tauri window pointing at localhost:3333
+# Terminal 2 — then open Tauri (do NOT use npx tauri dev alone;
+#              tauri.conf.json has beforeDevCommand="" to avoid a
+#              second server trying to bind port 3333)
+npx tauri dev
 ```
 
 ### Troubleshooting: port 3333 already in use

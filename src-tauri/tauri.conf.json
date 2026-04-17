@@ -3,7 +3,7 @@
   "productName": "StudyTrack",
   "version": "0.3.0",
   "build": {
-    "beforeDevCommand": "node server.js",
+    "beforeDevCommand": "",
     "devUrl": "http://localhost:3333",
     "beforeBuildCommand": "bash scripts/build-sidecar.sh",
     "frontendDist": "http://localhost:3333"
