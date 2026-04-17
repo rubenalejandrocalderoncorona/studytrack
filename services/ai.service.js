@@ -53,7 +53,14 @@ function _getClient() {
   return _client;
 }
 
-// ── Exported helpers ──────────────────────────────────────────────────────────
+/** Strip markdown code fences that some models wrap around JSON responses. */
+function stripFences(text) {
+  return text
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '')
+    .trim();
+}
+
 
 /**
  * Returns true when the Anthropic API key is present and the client is usable.
@@ -99,7 +106,7 @@ async function generateTheoreticalExam({ topic, count = 5, context = '' }) {
   });
 
   const raw = message.content[0].text.trim();
-  return JSON.parse(raw);
+  return JSON.parse(stripFences(raw));
 }
 
 /**
@@ -130,7 +137,7 @@ async function generateCodingChallenge({ topic, language = 'python', context = '
   });
 
   const raw = message.content[0].text.trim();
-  return JSON.parse(raw);
+  return JSON.parse(stripFences(raw));
 }
 
 /**
