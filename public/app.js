@@ -101,7 +101,7 @@ function renderServiceBar() {
       ${dot(chroma)}<span class="svc-label">Chroma</span>
       ${dot(piston)}<span class="svc-label">Code</span>
     </div>
-    ${!allUp && !manageAvailable ? '<span class="svc-hint">Start the Docker stack to enable AI &amp; Code features</span>' : ''}
+    ${!allUp && !manageAvailable ? '<span class="svc-hint svc-hint-pulse">Waiting for services…</span>' : ''}
     ${action}`;
 }
 
@@ -419,7 +419,44 @@ async function onAddTask(e) {
   }
 }
 
-/* ─── AI Exam Tab ────────────────────────────────────────────────────── */
+const DIFF_LEVELS = [
+  { value: 1, label: 'Beginner' },
+  { value: 2, label: 'Amateur' },
+  { value: 3, label: 'Intermediate' },
+  { value: 4, label: 'Advanced' },
+  { value: 5, label: 'Expert' },
+];
+
+function diffLabel(v) {
+  const d = DIFF_LEVELS.find(d => d.value === Number(v));
+  return d ? d.label : String(v);
+}
+
+function renderPillSelector(id, items, selectedValue, onChange) {
+  const wrap = document.createElement('div');
+  wrap.className = 'pill-selector';
+  wrap.id = id;
+  items.forEach(item => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pill-option' + (String(item.value) === String(selectedValue) ? ' selected' : '');
+    btn.dataset.value = item.value;
+    btn.textContent = item.label;
+    btn.addEventListener('click', () => {
+      wrap.querySelectorAll('.pill-option').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      if (onChange) onChange(item.value);
+    });
+    wrap.appendChild(btn);
+  });
+  wrap.getValue = () => {
+    const sel = wrap.querySelector('.pill-option.selected');
+    return sel ? sel.dataset.value : String(selectedValue);
+  };
+  return wrap;
+}
+
+
 function renderExamTab() {
   const obj = appData.objectives.find(o => o.id === activeObjectiveId);
   if (!obj) return;
@@ -441,6 +478,10 @@ function renderExamTab() {
               <input class="form-input" id="examCount" type="number" min="1" max="20" value="5" />
             </div>
           </div>
+          <div class="form-group">
+            <label class="form-label">Difficulty</label>
+            <div id="examDifficultyPills"></div>
+          </div>
           <button class="btn btn-primary" id="examGenerateBtn" ${!serviceStatus.ai ? 'disabled' : ''}>Generate Exam ↗</button>
           ${!serviceStatus.ai ? '<div class="svc-feature-hint">AI service unavailable — configure ANTHROPIC_API_KEY to use this feature</div>' : ''}
           <div class="exam-error" id="examError"></div>
@@ -453,13 +494,17 @@ function renderExamTab() {
       </div>
     </div>`;
 
-  document.getElementById('examGenerateBtn').addEventListener('click', () => runGenerateExam(obj));
+  const diffPills = renderPillSelector('examDiffPills', DIFF_LEVELS, 2);
+  document.getElementById('examDifficultyPills').replaceWith(diffPills);
+
+  document.getElementById('examGenerateBtn').addEventListener('click', () => runGenerateExam(obj, diffPills));
   loadExamHistory(obj);
 }
 
-async function runGenerateExam(obj) {
+async function runGenerateExam(obj, diffPills) {
   const topic = document.getElementById('examTopic').value.trim();
   const count = parseInt(document.getElementById('examCount').value) || 5;
+  const difficulty = parseInt(diffPills ? diffPills.getValue() : 2, 10);
   const errEl = document.getElementById('examError');
   const btn = document.getElementById('examGenerateBtn');
   if (!topic) { errEl.textContent = 'Topic is required.'; return; }
@@ -470,7 +515,7 @@ async function runGenerateExam(obj) {
     const res = await fetch('/api/exams/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ objectiveId: obj.id, topic, type: 'theoretical', count })
+      body: JSON.stringify({ objectiveId: obj.id, topic, type: 'theoretical', count, difficulty })
     });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.error || 'Generation failed.'; return; }
@@ -600,36 +645,28 @@ function renderCodeTab() {
 
   const lang = obj.codingLanguage || 'python';
 
-  // Build language options — merge Piston runtimes with known list
+  // Build language list — merge Piston runtimes with known list
   const knownLangs = ['python', 'javascript', 'typescript', 'go', 'java', 'rust', 'cpp', 'bash', 'c', 'ruby', 'php'];
   const runtimeLangs = pistonRuntimes.map(r => r.language);
   const allLangs = [...new Set([...knownLangs, ...runtimeLangs])].sort();
-  const langOpts = allLangs.map(l => `<option value="${l}" ${l === lang ? 'selected' : ''}>${l}</option>`).join('');
+  const langItems = allLangs.map(l => ({ value: l, label: l }));
 
   panel.innerHTML = `
     <div class="code-panel">
       <div class="code-generate-card">
         <div class="section-title">Generate Coding Challenge</div>
         <div class="exam-form">
-          <div class="form-row">
-            <div class="form-group flex1">
-              <label class="form-label">Topic / Problem Type</label>
-              <input class="form-input" id="codeTopic" placeholder="e.g. Two pointers, Graph BFS, Kubernetes deploy, …" />
-            </div>
-            <div class="form-group" style="min-width:150px">
-              <label class="form-label">Language / Environment</label>
-              <select class="form-input form-select" id="codeLang">${langOpts}</select>
-            </div>
-            <div class="form-group" style="min-width:130px">
-              <label class="form-label">Difficulty</label>
-              <select class="form-input form-select" id="codeDifficulty">
-                <option value="1">1 — Beginner</option>
-                <option value="2">2 — Easy</option>
-                <option value="3" selected>3 — Medium</option>
-                <option value="4">4 — Hard</option>
-                <option value="5">5 — Expert</option>
-              </select>
-            </div>
+          <div class="form-group flex1">
+            <label class="form-label">Topic / Problem Type</label>
+            <input class="form-input" id="codeTopic" placeholder="e.g. Two pointers, Graph BFS, Kubernetes deploy, …" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Language / Environment</label>
+            <div id="codeLangPills"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Difficulty</label>
+            <div id="codeDifficultyPills"></div>
           </div>
           <button class="btn btn-primary" id="codeGenerateBtn" ${!serviceStatus.ai ? 'disabled' : ''}>Generate Challenge ↗</button>
           ${!serviceStatus.ai ? '<div class="svc-feature-hint">AI service unavailable — configure ANTHROPIC_API_KEY to use this feature</div>' : ''}
@@ -639,13 +676,19 @@ function renderCodeTab() {
       <div id="challengeArea"></div>
     </div>`;
 
-  document.getElementById('codeGenerateBtn').addEventListener('click', () => runGenerateChallenge(obj));
+  const langPills = renderPillSelector('codeLangPillsEl', langItems, lang);
+  document.getElementById('codeLangPills').replaceWith(langPills);
+
+  const diffPills = renderPillSelector('codeDiffPillsEl', DIFF_LEVELS, 3);
+  document.getElementById('codeDifficultyPills').replaceWith(diffPills);
+
+  document.getElementById('codeGenerateBtn').addEventListener('click', () => runGenerateChallenge(obj, langPills, diffPills));
 }
 
-async function runGenerateChallenge(obj) {
+async function runGenerateChallenge(obj, langPills, diffPills) {
   const topic = document.getElementById('codeTopic').value.trim();
-  const language = document.getElementById('codeLang').value;
-  const difficulty = parseInt(document.getElementById('codeDifficulty').value, 10);
+  const language = langPills ? langPills.getValue() : 'python';
+  const difficulty = parseInt(diffPills ? diffPills.getValue() : 3, 10);
   const errEl = document.getElementById('codeError');
   const btn = document.getElementById('codeGenerateBtn');
   if (!topic) { errEl.textContent = 'Topic is required.'; return; }
@@ -686,7 +729,7 @@ function renderCodingChallenge(record, selectedLang) {
       <div class="challenge-header">
         <div class="challenge-title">${x(ch.title || record.topic)}</div>
         <span class="lang-badge">${lang}</span>
-        ${(ch.difficulty || record.difficulty) ? `<span class="diff-badge diff-${ch.difficulty || record.difficulty}">Lvl ${ch.difficulty || record.difficulty}</span>` : ''}
+        ${(ch.difficulty || record.difficulty) ? `<span class="diff-badge diff-${ch.difficulty || record.difficulty}">${diffLabel(ch.difficulty || record.difficulty)}</span>` : ''}
       </div>
       <div class="challenge-description">${x(ch.description)}</div>
       ${examples ? `<div class="challenge-section"><div class="section-label">Examples</div>${examples}</div>` : ''}
@@ -697,7 +740,8 @@ function renderCodingChallenge(record, selectedLang) {
           <span class="section-label">Your Solution (${lang})</span>
           <div class="editor-actions">
             <button class="btn btn-sm btn-ghost" id="resetCodeBtn">Reset</button>
-            <button class="btn btn-sm btn-primary" id="runCodeBtn" ${!serviceStatus.piston ? 'disabled' : ''}>▶ Run</button>
+            <button class="btn btn-sm btn-secondary" id="runCodeBtn" ${!serviceStatus.piston ? 'disabled' : ''}>▶ Run</button>
+            <button class="btn btn-sm btn-primary" id="checkCodeBtn" ${!serviceStatus.piston ? 'disabled' : ''}>✓ Check Solution</button>
           </div>
         </div>
         <textarea class="code-editor" id="codeEditor" spellcheck="false">${x(starter)}</textarea>
@@ -715,6 +759,8 @@ function renderCodingChallenge(record, selectedLang) {
         <pre class="output-pre" id="outputPre"></pre>
       </div>
 
+      <div class="check-results" id="checkResults" style="display:none"></div>
+
       ${visibleTests.length ? `<div class="challenge-section">
         <div class="section-label">Sample Test Cases</div>
         ${visibleTests.map(t => `<div class="test-row"><span class="ex-label">in:</span> <code>${x(t.input)}</code> <span class="ex-label">expected:</span> <code>${x(t.expectedOutput)}</code></div>`).join('')}
@@ -722,6 +768,7 @@ function renderCodingChallenge(record, selectedLang) {
     </div>`;
 
   document.getElementById('runCodeBtn').addEventListener('click', () => runCode(lang));
+  document.getElementById('checkCodeBtn').addEventListener('click', () => checkSolution(lang, ch.testCases || []));
   document.getElementById('resetCodeBtn').addEventListener('click', () => {
     document.getElementById('codeEditor').value = starter;
   });
@@ -741,6 +788,9 @@ async function runCode(lang) {
   badge.textContent = '';
   badge.className = 'exit-badge';
 
+  // Runtime install can take ~60s on first use — update the label after 3s
+  const installHint = setTimeout(() => { if (btn.disabled) btn.textContent = '⏳ Installing runtime…'; }, 3000);
+
   try {
     const res = await fetch('/api/sandbox/run', {
       method: 'POST',
@@ -756,8 +806,78 @@ async function runCode(lang) {
   } catch (e) {
     pre.textContent = 'Error: ' + e.message;
   } finally {
+    clearTimeout(installHint);
     btn.disabled = false; btn.textContent = '▶ Run';
   }
+}
+
+/* ─── Solution Checker ───────────────────────────────────────────────── */
+async function checkSolution(lang, testCases) {
+  const code = document.getElementById('codeEditor').value;
+  const btn = document.getElementById('checkCodeBtn');
+  const resultsEl = document.getElementById('checkResults');
+
+  if (!testCases.length) {
+    resultsEl.style.display = '';
+    resultsEl.innerHTML = '<div class="check-summary check-warn">No test cases available for this challenge.</div>';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = '⏳ Checking…';
+  resultsEl.style.display = '';
+  resultsEl.innerHTML = '<div class="check-running">Running test cases…</div>';
+  const installHint = setTimeout(() => { if (btn.disabled) btn.textContent = '⏳ Installing runtime…'; }, 3000);
+
+  let passed = 0;
+  const rows = [];
+
+  for (const tc of testCases) {
+    try {
+      const res = await fetch('/api/sandbox/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: lang, code, stdin: tc.input ?? '' })
+      });
+      const data = await res.json();
+      if (!res.ok) { rows.push({ ok: false, input: tc.input, expected: tc.expectedOutput, actual: data.error, error: true }); continue; }
+      const actual = (data.stdout ?? '').trimEnd();
+      const expected = (tc.expectedOutput ?? '').trimEnd();
+      const ok = actual === expected;
+      if (ok) passed++;
+      rows.push({ ok, input: tc.input, expected, actual, hidden: tc.hidden });
+    } catch (e) {
+      rows.push({ ok: false, input: tc.input, expected: tc.expectedOutput, actual: e.message, error: true });
+    }
+  }
+
+  const total = testCases.length;
+  const allPassed = passed === total;
+  const summaryClass = allPassed ? 'check-pass' : passed === 0 ? 'check-fail' : 'check-partial';
+  const summaryText = allPassed
+    ? `Passed — all ${total} test cases correct`
+    : `${passed}/${total} test cases passed`;
+
+  let html = `<div class="check-summary ${summaryClass}">${summaryText}</div><div class="check-cases">`;
+  rows.forEach((r, i) => {
+    if (r.hidden) {
+      html += `<div class="check-case ${r.ok ? 'case-pass' : 'case-fail'}">
+        <span class="case-icon">${r.ok ? '✓' : '✗'}</span>
+        <span class="case-label">Hidden test ${i + 1}</span>
+        ${!r.ok ? `<span class="case-detail">Wrong answer</span>` : ''}
+      </div>`;
+    } else {
+      html += `<div class="check-case ${r.ok ? 'case-pass' : 'case-fail'}">
+        <span class="case-icon">${r.ok ? '✓' : '✗'}</span>
+        <span class="case-label">Test ${i + 1}</span>
+        <code class="case-input">in: ${x(String(r.input ?? ''))}</code>
+        ${!r.ok ? `<span class="case-detail">expected <code>${x(String(r.expected))}</code> got <code>${x(String(r.actual))}</code></span>` : ''}
+      </div>`;
+    }
+  });
+  html += '</div>';
+  resultsEl.innerHTML = html;
+  clearTimeout(installHint);
+  btn.disabled = false; btn.textContent = '✓ Check Solution';
 }
 
 /* ─── Activity Heatmap Tab ───────────────────────────────────────────── */

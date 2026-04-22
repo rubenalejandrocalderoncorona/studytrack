@@ -49,7 +49,10 @@ router.post('/run', async (req, res) => {
     return res.json(result);
   } catch (err) {
     console.error('[sandbox] runCode error:', err);
-    return res.status(503).json({ error: 'Sandbox unavailable: ' + err.message });
+    const msg = err.message.includes('not available')
+      ? `Language "${language}" is not supported by this sandbox`
+      : 'Sandbox unavailable: ' + err.message;
+    return res.status(503).json({ error: msg });
   }
 });
 

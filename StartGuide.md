@@ -1,88 +1,82 @@
-# StudyTrack
+# StudyTrack — Start Guide
 
 Personal study tracker with AI exam generation and code challenges.
-Runs as a **Docker stack** (Web UI) or a **native macOS app** (Tauri).
-
-> For deeper technical detail — architecture, troubleshooting, internals — see [`docs/TECHNICAL.md`](docs/TECHNICAL.md).
 
 ---
 
-## 1 — Set your API key (required for AI + Code features)
+## 1 — Configure your AI credentials (required for AI + Code features)
 
-Check if it's already set:
-```bash
-echo $ANTHROPIC_API_KEY
+Open `.env` in the project root and set your credentials. Two options:
+
+**Option A — Direct Anthropic API key**
 ```
-
-If it prints your key — skip to step 2. If it's empty, set it permanently:
-```bash
-echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.zshrc
-source ~/.zshrc
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+# leave ANTHROPIC_BASE_URL unset
 ```
+Get a key at https://console.anthropic.com/settings/keys
 
-Then create the `.env` file for the Docker stack:
-```bash
-cp .env.example .env
-# open .env and set ANTHROPIC_API_KEY to the same value
+**Option B — AI API Proxy**
 ```
+ANTHROPIC_API_KEY=your-proxy-key
+ANTHROPIC_BASE_URL=http://localhost:6655/anthropic
+```
+The `ANTHROPIC_BASE_URL` must be the base path the proxy expects **before** `/v1/messages`.
+For example if your proxy serves `http://localhost:6655/anthropic/v1/messages`, set the URL to `http://localhost:6655/anthropic`.
 
-**Web UI:** reads from `.env`.  
-**macOS app:** reads from your shell — already set if you did the `~/.zshrc` step (or it was already there).
+> `.env` is gitignored — never commit real keys. The server loads it automatically on every `make app` or `make web`.
 
 ---
 
-## 2 — Web UI (Docker)
+## 2 — Start the app
 
-**Requires:** Docker Desktop running.
-
+**macOS app (Tauri window):**
 ```bash
-make up-bg      # build + start everything  →  http://localhost:3333
-make restart    # after editing any source file (faster than up-bg)
-make down       # stop everything
-make status     # check all services are green
-make logs       # stream logs
+make app
 ```
+Starts Docker (if not running), launches ChromaDB + Piston, starts the Node server, then opens the native app window.
 
-> AI and Code features also need ChromaDB + Piston — both start automatically with `make up-bg`.
+**Web UI (browser):**
+```bash
+make web
+```
+Same as above but opens `http://localhost:3333` in your browser instead.
 
 ---
 
-## 3 — macOS App (Tauri)
-
-**Requires:** Docker Desktop running, Rust toolchain (`rustup`), Node.js 18+.
+## 3 — Stop / Restart
 
 ```bash
-make macos-build   # compile .app + .dmg  (3–5 min first time)
-make macos-open    # open the app (builds first if missing)
-```
-
-Inside the app, click **"Launch AI Services"** to start ChromaDB + Piston.  
-Data is stored in `~/Library/Application Support/studytrack/`.
-
-**Dev mode** (no recompile — edit files and refresh):
-```bash
-# Terminal 1
-make macos-dev     # start Node server on port 3333
-
-# Terminal 2
-npx tauri dev      # open Tauri window
+make stop              # kill server + stop ChromaDB + Piston
+make restart           # stop then restart web UI
+make restart MODE=app  # stop then restart macOS app
 ```
 
 ---
 
-## Debugging make targets
+## 4 — After editing credentials
+
+If you change `.env`, restart the server so it picks up the new values:
+```bash
+make restart           # web UI
+make restart MODE=app  # macOS app
+```
+
+---
+
+## 5 — Build a distributable macOS app
 
 ```bash
-make <target> --dry-run   # print commands without running them
-make <target> -n          # same thing, shorthand
-make status               # check which services are up
-make logs-app             # stream app logs only
+make macos-build   # compiles .app + .dmg (3–5 min first time)
 ```
+
+Output: `src-tauri/target/release/bundle/macos/StudyTrack.app`
 
 ---
 
 ## Smoke tests
 
 ```bash
-make test-api     # requires the stack to be running (make up-bg first)
+make test-api   # requires the server to be running (make app or make web first)
 ```
+
+> For architecture, internals, and troubleshooting see [`docs/TECHNICAL.md`](docs/TECHNICAL.md).

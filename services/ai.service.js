@@ -19,7 +19,13 @@ Rules:
 - Each question has: "question" (string), "options" (array of 4 strings, labelled A–D),
   "answer" (single uppercase letter A/B/C/D), "explanation" (string, ≤ 60 words).
 - Questions must be unambiguous and have exactly one correct answer.
-- Vary difficulty: roughly 30% easy, 50% medium, 20% hard.`;
+- Difficulty scale:
+    1 = Beginner: basic recall, definitions, simple concepts
+    2 = Amateur: apply concepts, identify correct usage
+    3 = Intermediate: compare approaches, moderate reasoning required
+    4 = Advanced: multi-step reasoning, edge cases, deeper knowledge
+    5 = Expert: expert-level nuance, common pitfalls, synthesis across topics
+- Match ALL questions to the requested difficulty level.`;
 
 const SYSTEM_CODING = `You are an expert software engineering tutor and challenge designer.
 Your task is to generate a coding challenge to test practical programming skills.
@@ -94,13 +100,15 @@ class AiUnavailableError extends Error {
  * @param {string} [params.context]   - Optional RAG context injected into the user message
  * @returns {Promise<{questions: Array<{question:string, options:string[], answer:string, explanation:string}>}>}
  */
-async function generateTheoreticalExam({ topic, count = 5, context = '' }) {
+async function generateTheoreticalExam({ topic, count = 5, difficulty = 2, context = '' }) {
   const client = _getClient();
   if (!client) throw new AiUnavailableError();
 
   const n = Math.min(Math.max(1, count), 20);
+  const level = Math.min(Math.max(1, Math.round(difficulty)), 5);
   const userMsg = [
     `Topic: ${topic}`,
+    `Difficulty: ${level}/5`,
     context ? `\nRelevant context from study materials:\n${context}` : '',
     `\nGenerate exactly ${n} multiple-choice questions. Return a JSON object: { "questions": [ ... ] }`,
   ].join('');

@@ -1,35 +1,24 @@
 'use strict';
 
-/**
- * sandbox.service.js — Piston code execution sandbox wrapper.
- *
- * All code execution is delegated to the Piston container (PISTON_URL env,
- * default http://piston:2000).  User-submitted code MUST pass through this
- * service and never be eval'd inside the Node.js runtime.
- *
- * Supported languages are fetched from Piston at startup.  Pass the `language`
- * and `version` exactly as Piston reports them.
- */
-
 const http  = require('http');
 const https = require('https');
 const { URL } = require('url');
 
-const PISTON_URL = process.env.PISTON_URL || 'http://piston:2000';
-const EXEC_TIMEOUT_MS = 10_000; // 10 s hard cap on sandbox requests
+const PISTON_URL      = process.env.PISTON_URL || 'http://localhost:2000';
+const EXEC_TIMEOUT_MS = 10_000;
+const INSTALL_TIMEOUT_MS = 120_000;
 
-/**
- * Simple HTTP/HTTPS fetch helper (avoids adding node-fetch as a dep).
- * @param {string} url
- * @param {object} [opts]
- * @returns {Promise<{status: number, body: string}>}
- */
-function _fetch(url, opts = {}) {
+// Cache of language → version for installed runtimes (populated lazily)
+let _runtimeCache = null;
+// Track in-progress installs so concurrent requests don't double-install
+const _installing = new Map();
+
+function _fetch(url, opts = {}, timeoutMs = EXEC_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
-    const parsed   = new URL(url);
+    const parsed    = new URL(url);
     const transport = parsed.protocol === 'https:' ? https : http;
-    const body     = opts.body ? Buffer.from(opts.body, 'utf-8') : null;
-    const options  = {
+    const body      = opts.body ? Buffer.from(opts.body, 'utf-8') : null;
+    const options   = {
       hostname: parsed.hostname,
       port:     parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
       path:     parsed.pathname + parsed.search,
@@ -47,7 +36,7 @@ function _fetch(url, opts = {}) {
       res.on('end',  () => resolve({ status: res.statusCode, body: data }));
     });
 
-    req.setTimeout(EXEC_TIMEOUT_MS, () => {
+    req.setTimeout(timeoutMs, () => {
       req.destroy();
       reject(new Error('Piston request timed out'));
     });
@@ -58,34 +47,85 @@ function _fetch(url, opts = {}) {
   });
 }
 
-/**
- * List runtimes available in the Piston container.
- * @returns {Promise<Array<{language:string, version:string, aliases:string[]}>>}
- */
 async function listRuntimes() {
   const { status, body } = await _fetch(`${PISTON_URL}/api/v2/runtimes`);
   if (status !== 200) throw new Error(`Piston /runtimes returned HTTP ${status}`);
-  return JSON.parse(body);
+  const runtimes = JSON.parse(body);
+  // Refresh cache
+  _runtimeCache = new Map();
+  for (const r of runtimes) {
+    _runtimeCache.set(r.language.toLowerCase(), r.version);
+    for (const alias of (r.aliases || [])) {
+      _runtimeCache.set(alias.toLowerCase(), r.version);
+    }
+  }
+  return runtimes;
 }
 
 /**
- * Execute code in the Piston sandbox.
- *
- * @param {object} params
- * @param {string} params.language   - Language identifier (e.g. "python", "javascript")
- * @param {string} params.version    - Runtime version (e.g. "3.10.0" — use "*" for latest)
- * @param {string} params.code       - Source code to execute
- * @param {string} [params.stdin]    - Optional stdin input
- * @returns {Promise<{stdout:string, stderr:string, exitCode:number, output:string}>}
+ * Ensure a language runtime is installed in Piston.
+ * If not installed, fetches the available packages list and installs the latest version.
+ * Concurrent calls for the same language wait on the same install promise.
  */
+async function ensureRuntime(language) {
+  const lang = language.toLowerCase();
+
+  // Populate cache if empty
+  if (!_runtimeCache) await listRuntimes();
+
+  if (_runtimeCache.has(lang)) return _runtimeCache.get(lang);
+
+  // Already being installed — wait for it
+  if (_installing.has(lang)) return _installing.get(lang);
+
+  const installPromise = (async () => {
+    console.log(`[sandbox] runtime "${lang}" not installed — fetching available packages…`);
+
+    // Get available packages from Piston
+    const { status: ps, body: pb } = await _fetch(`${PISTON_URL}/api/v2/packages`);
+    if (ps !== 200) throw new Error(`Piston /packages returned HTTP ${ps}`);
+    const packages = JSON.parse(pb);
+
+    // Find the latest version for this language (or alias)
+    const match = packages
+      .filter(p => p.language.toLowerCase() === lang || (p.aliases || []).some(a => a.toLowerCase() === lang))
+      .sort((a, b) => b.version.localeCompare(a.version, undefined, { numeric: true }))[0];
+
+    if (!match) throw new Error(`Language "${language}" is not available in this Piston instance`);
+
+    console.log(`[sandbox] installing ${match.language} ${match.version}…`);
+    const { status: is } = await _fetch(`${PISTON_URL}/api/v2/packages`, {
+      method: 'POST',
+      body: JSON.stringify({ language: match.language, version: match.version }),
+    }, INSTALL_TIMEOUT_MS);
+
+    if (is !== 200) throw new Error(`Failed to install ${match.language} ${match.version}`);
+
+    // Refresh cache after install
+    await listRuntimes();
+    console.log(`[sandbox] installed ${match.language} ${match.version}`);
+    return match.version;
+  })();
+
+  _installing.set(lang, installPromise);
+  try {
+    const version = await installPromise;
+    return version;
+  } finally {
+    _installing.delete(lang);
+  }
+}
+
 async function runCode({ language, version = '*', code, stdin = '' }) {
-  /** @type {object} */
+  // Auto-install runtime if needed (resolves version too)
+  const resolvedVersion = await ensureRuntime(language);
+
   const payload = {
     language,
-    version,
+    version: version !== '*' ? version : resolvedVersion,
     files: [{ name: `main.${_ext(language)}`, content: code }],
     stdin,
-    run_timeout: 5000, // ms — Piston-side limit
+    run_timeout: 5000,
   };
 
   const { status, body } = await _fetch(`${PISTON_URL}/api/v2/execute`, {
@@ -108,23 +148,13 @@ async function runCode({ language, version = '*', code, stdin = '' }) {
   };
 }
 
-/**
- * Map common language names to file extensions.
- * @param {string} lang
- * @returns {string}
- */
 function _ext(lang) {
   const map = {
-    python:     'py',
-    javascript: 'js',
-    typescript: 'ts',
-    java:       'java',
-    go:         'go',
-    rust:       'rs',
-    cpp:        'cpp',
-    c:          'c',
+    python: 'py', javascript: 'js', typescript: 'ts',
+    java: 'java', go: 'go', rust: 'rs', cpp: 'cpp', c: 'c',
+    ruby: 'rb', php: 'php', bash: 'sh',
   };
   return map[lang.toLowerCase()] ?? 'txt';
 }
 
-module.exports = { runCode, listRuntimes };
+module.exports = { runCode, listRuntimes, ensureRuntime };

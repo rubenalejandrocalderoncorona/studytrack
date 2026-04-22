@@ -85,7 +85,7 @@ router.post('/generate', async (req, res) => {
 
     let exam;
     if (type === 'theoretical') {
-      exam = await ai.generateTheoreticalExam({ topic, count: count ?? 5, context });
+      exam = await ai.generateTheoreticalExam({ topic, count: count ?? 5, difficulty: difficulty ?? 2, context });
     } else {
       exam = await ai.generateCodingChallenge({ topic, language: language ?? 'python', difficulty: difficulty ?? 3, context });
     }
